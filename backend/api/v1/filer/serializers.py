@@ -14,16 +14,12 @@ class UploadRelatedImageSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         image_field = self.get_setattr_obj_name()
-        file = validated_data.pop(image_field, None)
-        if file:
+        if file := validated_data.pop(image_field, None):
             image = Image.objects.create(**{
                 'creator': self._get_username(),
-                'image': file
+                **file
             })
-            validated_data = {
-                **validated_data,
-                image_field: image
-            }
+            validated_data[image_field] = image
         return super().create(validated_data)
 
 

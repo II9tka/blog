@@ -31,6 +31,9 @@ Markdown = "==3.3.4"
 Sphinx = ">=1.5.5"
 drf-yasg = "*"
 django-phone-login-fix-version = "*"
+django = "==2.2.8"
+elasticsearch-dsl = "*"
+django-elasticsearch-dsl-drf = "*"
 
 [requires]
 python_version = "3.8"

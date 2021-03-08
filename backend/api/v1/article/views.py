@@ -1,25 +1,44 @@
+from django.db import models
+
 from rest_framework import viewsets, mixins
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from backend.article.models import Article, ArticleImage
-from .serializers import (
-    ArticleSerializer, ArticleModelSerializer, UploadArticleCoverSerializer,
-    UploadArticleImageSerializer
+from backend.article.models import (
+    Article,
+    ArticleImage,
+    ArticleComment,
 )
+
+from .serializers import (
+    ArticleListModelSerializer, ArticleDetailModelSerializer, UploadArticleCoverSerializer,
+    UploadArticleImageSerializer,
+    ArticleCommentModelSerializer,
+    ArticleCommentLikeModelSerializer,
+)
+
+
+class ArticleCommentLikeViewSet(mixins.CreateModelMixin,
+                                viewsets.GenericViewSet):
+    serializer_class = ArticleCommentLikeModelSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(creator=self.request.user)
+
+    # TODO: change status code if like delete
 
 
 class ArticleViewSet(viewsets.ModelViewSet):
     queryset = Article.objects.with_related()
 
     def get_serializer_class(self):
-        if self.action == 'list':
-            return ArticleSerializer
-        elif self.action == 'cover':
+        if self.action == 'cover':
             return UploadArticleCoverSerializer
+        elif self.action == 'list':
+            return ArticleListModelSerializer
         else:
-            return ArticleModelSerializer
+            return ArticleDetailModelSerializer
 
     def perform_create(self, serializer):
         serializer.save(creator=self.request.user)
@@ -49,3 +68,20 @@ class ArticleImageViewSet(mixins.CreateModelMixin,
             article=self.kwargs['article_pk'],
             article__creator=self.request.user
         )
+
+
+class ArticleCommentViewSet(mixins.CreateModelMixin,
+                            mixins.DestroyModelMixin,
+                            mixins.UpdateModelMixin,
+                            viewsets.GenericViewSet):
+    serializer_class = ArticleCommentModelSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def get_queryset(self):
+        return ArticleComment.objects.with_related().filter(
+            article=self.kwargs['article_pk'],
+            article__creator=self.request.user
+        )
+
+    def perform_create(self, serializer):
+        serializer.save(creator=self.request.user)

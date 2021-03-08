@@ -10,8 +10,9 @@ def get_obj_or_raise_error(
 ):
     pk = context['view'].kwargs.get(pk_args, None)
     model_obj = model.objects.filter(pk=pk)
+
     if model_obj.exists():
-        validated_data['%s' % model.__name__.lower()] = model_obj.first()
+        validated_data['%s' % pk_args.split('_')[0]] = model_obj.first()
     else:
         raise serializers.ValidationError(
             {
@@ -19,3 +20,9 @@ def get_obj_or_raise_error(
                 'status': status.HTTP_400_BAD_REQUEST
             }
         )
+
+
+class RecursiveChildrenSerializer(serializers.Serializer):
+    def to_representation(self, instance):
+        serializer = self.parent.parent.__class__(instance, context=self.context)
+        return serializer.data
