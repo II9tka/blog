@@ -1,7 +1,9 @@
 from elasticsearch_dsl import analyzer, tokenizer
 from django_elasticsearch_dsl import Document, Index, fields
+from django_elasticsearch_dsl_drf.compat import KeywordField, StringField
+from versatileimagefield.fields import VersatileImageField
 
-from .models import Article
+from .models import Article, Image
 
 ARTICLE_INDEX = Index('article')
 
@@ -29,11 +31,14 @@ html_strip = analyzer(
 @ARTICLE_INDEX.doc_type
 class ArticleDocument(Document):
     id = fields.IntegerField(attr='id')
-    title = fields.TextField(
+    title = StringField(
         analyzer=html_strip,
         fields={
             'raw': fields.Text(analyzer='keyword'),
         }
+    )
+    cover = fields.FileField(
+        attr='get_cover'
     )
     description = fields.TextField(
         analyzer=html_strip,
@@ -47,7 +52,7 @@ class ArticleDocument(Document):
             'raw': fields.TextField(analyzer='keyword'),
         }
     )
-    creator = fields.IntegerField(attr='creator_id')
+    creator = StringField(attr='creator.username')
     created_at = fields.DateField()
     updated_at = fields.DateField()
 

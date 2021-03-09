@@ -53,6 +53,9 @@ class Article(models.Model):
     updated_at = models.DateTimeField(
         auto_now=True, verbose_name=_('Updated at'), editable=False
     )
+    is_published = models.BooleanField(
+        default=False, verbose_name=_('Is published')
+    )
 
     tags = TaggableManager()
     objects = ArticleQuerySet.as_manager()
