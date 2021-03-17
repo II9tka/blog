@@ -1,21 +1,21 @@
-from django.db import models
+from typing import Union, Dict
 
-from rest_framework import viewsets, mixins
+from django.http import HttpResponse
+from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.utils.serializer_helpers import ReturnDict
 
 from backend.article.models import (
     Article,
-    ArticleImage,
     ArticleComment,
 )
 
 from .serializers import (
-    ArticleListModelSerializer, ArticleDetailModelSerializer, UploadArticleCoverSerializer,
-    UploadArticleImageSerializer,
+    ArticleListModelSerializer, ArticleDetailModelSerializer,
     ArticleCommentModelSerializer,
-    ArticleCommentLikeModelSerializer,
+    ArticleCommentLikeModelSerializer, ArticleCoverModelSerializer,
 )
 
 
@@ -23,19 +23,28 @@ class ArticleCommentLikeViewSet(mixins.CreateModelMixin,
                                 viewsets.GenericViewSet):
     serializer_class = ArticleCommentLikeModelSerializer
 
+    @staticmethod
+    def get_response(data: ReturnDict, headers: Union[Dict[str, str], dict]) -> HttpResponse:
+        if data['id']:
+            return Response(data, status=status.HTTP_201_CREATED, headers=headers)
+        return Response(status=status.HTTP_204_NO_CONTENT, headers=headers)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return self.get_response(serializer.data, headers)
+
     def perform_create(self, serializer):
         serializer.save(creator=self.request.user)
 
-    # TODO: change status code if like delete
-
 
 class ArticleViewSet(viewsets.ModelViewSet):
-    queryset = Article.objects.with_related()
+    queryset = Article.objects.with_common_related()
 
     def get_serializer_class(self):
-        if self.action == 'cover':
-            return UploadArticleCoverSerializer
-        elif self.action == 'list':
+        if self.action == 'list':
             return ArticleListModelSerializer
         else:
             return ArticleDetailModelSerializer
@@ -48,27 +57,6 @@ class ArticleViewSet(viewsets.ModelViewSet):
         queryset = Article.tags.most_common()[:20]
         return Response(queryset.values('id', 'name'))
 
-    @action(methods=['POST'], detail=True, )
-    def cover(self, request, pk=None):
-        article = self.get_object()
-        serializer = self.get_serializer(data=request.FILES)
-        serializer.is_valid(raise_exception=True)
-        serializer.save(article=article)
-        return Response(serializer.data)
-
-
-class ArticleImageViewSet(mixins.CreateModelMixin,
-                          mixins.DestroyModelMixin,
-                          viewsets.GenericViewSet):
-    serializer_class = UploadArticleImageSerializer
-    permission_classes = (IsAuthenticated,)
-
-    def get_queryset(self):
-        return ArticleImage.objects.with_all_related().filter(
-            article=self.kwargs['article_pk'],
-            article__creator=self.request.user
-        )
-
 
 class ArticleCommentViewSet(mixins.CreateModelMixin,
                             mixins.DestroyModelMixin,
@@ -78,10 +66,16 @@ class ArticleCommentViewSet(mixins.CreateModelMixin,
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
-        return ArticleComment.objects.with_related().filter(
+        return ArticleComment.objects.with_common_related().filter(
             article=self.kwargs['article_pk'],
             article__creator=self.request.user
         )
 
     def perform_create(self, serializer):
         serializer.save(creator=self.request.user)
+
+
+class ArticleCoverViewSet(mixins.CreateModelMixin,
+                          viewsets.GenericViewSet):
+    serializer_class = ArticleCoverModelSerializer
+    permission_classes = (IsAuthenticated,)

@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 
-from backend.utils.models import BaseQuerySet
+from backend.utils.models import BaseQuerySet, CommonRelatedModel
 from ..validators import validate_comment
 from . import Article
 
@@ -14,12 +14,7 @@ __all__ = (
 )
 
 
-class ArticleCommentQuerySet(BaseQuerySet):
-    def class_object(self):
-        return ArticleComment
-
-
-class ArticleComment(models.Model):
+class ArticleComment(CommonRelatedModel):
     COMMON_SELECT_RELATED = ('creator',)
     COMMON_PREFETCH_RELATED = ('likes',)
 
@@ -38,8 +33,6 @@ class ArticleComment(models.Model):
     parent = models.ForeignKey(
         'self', on_delete=models.SET_NULL, blank=True, null=True, related_name="children", verbose_name=_('Parent')
     )
-
-    objects = ArticleCommentQuerySet.as_manager()
 
     def __str__(self):
         return 'Comment %i for Article %i' % (self.id, self.article.id)

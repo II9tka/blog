@@ -1,18 +1,17 @@
 from rest_framework import viewsets, mixins
-from rest_framework.decorators import action
-from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 
 from backend.account.models import Account, AccountPrivacyStatus
 
 from .serializers import (
-    AccountListSerializer,
+    AccountListModelSerializer,
     PrivateAccountDetailModelSerializer,
     PublicAccountDetailModelSerializer,
-    OwnerAccountDetailModelSerializer,
-    UploadAvatarSerializer
+    AccountImageSerializer,
 )
 
-__all__ = ('AccountViewSet',)
+__all__ = ('AccountViewSet',
+           'AccountImageViewSet',)
 
 STATUS = AccountPrivacyStatus
 
@@ -21,27 +20,21 @@ class AccountViewSet(mixins.ListModelMixin,
                      mixins.RetrieveModelMixin,
                      mixins.UpdateModelMixin,
                      viewsets.GenericViewSet):
-    queryset = Account.objects.with_related()
+    queryset = Account.objects.all()
 
     def get_serializer_class(self):
         if self.action == 'list':
-            return AccountListSerializer
-        elif self.action == 'avatar':
-            return UploadAvatarSerializer
+            return AccountListModelSerializer
         else:
             account = self.get_object()
-            user = self.request.user
-            if user.is_authenticated and account == user:
-                return OwnerAccountDetailModelSerializer
-            elif account.status_type == STATUS.PUBLIC:
+            if account.status_type == STATUS.PUBLIC:
                 return PublicAccountDetailModelSerializer
             elif account.status_type == STATUS.PRIVATE:
                 return PrivateAccountDetailModelSerializer
 
-    @action(methods=['POST'], detail=True)
-    def avatar(self, request, pk=None):
-        account = self.get_object()
-        serializer = self.get_serializer(data=request.FILES)
-        serializer.is_valid(raise_exception=True)
-        serializer.save(account=account)
-        return Response(serializer.data)
+
+class AccountImageViewSet(mixins.DestroyModelMixin,
+                          mixins.CreateModelMixin,
+                          viewsets.GenericViewSet):
+    serializer_class = AccountImageSerializer
+    permission_classes = (IsAuthenticated,)

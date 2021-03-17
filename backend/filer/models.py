@@ -1,4 +1,3 @@
-import os
 import logging
 
 from django.db import models, transaction
@@ -11,9 +10,7 @@ from .services import upload_to
 
 logger = logging.getLogger(__name__)
 
-__all__ = (
-    'Image',
-)
+__all__ = ('Image',)
 
 
 class Image(BaseFileModel):
@@ -38,10 +35,6 @@ class Image(BaseFileModel):
         return self.width, self.height
 
     def save(self, *args, **kwargs):
-        # existing_images = Image.objects.filter(
-        #     image=os.path.join(self.creator, self.image.name.split('.')[-1], self.image.name)
-        # )
-
         self.mime_type = self._definition_mime_type()
 
         existing_images = Image.objects.filter(
@@ -52,7 +45,7 @@ class Image(BaseFileModel):
                 existing_image.image.delete_sized_images()
                 existing_image.delete()
                 logger.info(
-                    'File {filename} has been cleared.'.format(filename=existing_image.name)
+                    'File {filename} has been cleared.'.format(filename=existing_image)
                 )
 
         super().save(*args, **kwargs)

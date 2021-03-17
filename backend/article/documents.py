@@ -1,9 +1,8 @@
 from elasticsearch_dsl import analyzer, tokenizer
 from django_elasticsearch_dsl import Document, Index, fields
-from django_elasticsearch_dsl_drf.compat import KeywordField, StringField
-from versatileimagefield.fields import VersatileImageField
+from django_elasticsearch_dsl_drf.compat import StringField
 
-from .models import Article, Image
+from .models import Article
 
 ARTICLE_INDEX = Index('article')
 
@@ -55,6 +54,17 @@ class ArticleDocument(Document):
     creator = StringField(attr='creator.username')
     created_at = fields.DateField()
     updated_at = fields.DateField()
+    is_published = fields.BooleanField()
+    lifetime = fields.IntegerField()
+    tags = StringField(
+        attr='tags_indexing',
+        analyzer=html_strip,
+        fields={
+            'raw': StringField(analyzer='keyword', multi=True),
+            'suggest': fields.CompletionField(multi=True),
+        },
+        multi=True
+    )
 
     class Django:
         model = Article

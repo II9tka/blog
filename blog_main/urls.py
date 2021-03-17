@@ -12,6 +12,7 @@ from .yasg import urlpatterns as yasg_urlpatterns
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/', include('backend.api.v1.urls')),
+    path('chat/', include('backend.chat.urls')),
 ]
 
 urlpatterns += yasg_urlpatterns

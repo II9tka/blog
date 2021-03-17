@@ -5,18 +5,15 @@ from taggit_serializer.serializers import (
     TaggitSerializer
 )
 from versatileimagefield.serializers import VersatileImageFieldSerializer
-from backend.api.v1.filer.serializers import (
-    UploadImageSerializer,
-    UploadRelatedImageSerializer,
-)
 
 from backend.account.models import Account
+from backend.api.v1.filer.utils.serializers import UploadImageModelSerializer
 from backend.article.models import (
     Article,
-    ArticleImage,
     ArticleComment,
     ArticleCommentLike,
 )
+from backend.article.models.article_cover_model import ArticleCover
 
 from backend.utils.serializers import (
     get_obj_or_raise_error,
@@ -32,7 +29,7 @@ class CommentCreatorSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Account
-        fields = ('id', 'first_name', 'last_name', 'account_url',)
+        fields = ('id', 'username', 'first_name', 'last_name', 'account_url',)
 
 
 class BaseArticleModelSerializer(serializers.ModelSerializer):
@@ -96,28 +93,15 @@ class ArticleCommentModelSerializer(BaseArticleModelSerializer):
         }
 
 
-class ArticleImageSerializer(serializers.ModelSerializer):
-    image = VersatileImageFieldSerializer(
-        source='get_image',
-        read_only=True,
-        sizes=[
-            ('full_size', 'url'),
-            ('medium_square_crop', 'crop__400x400'),
-        ]
-    )
-
-    class Meta:
-        model = ArticleImage
-        exclude = ('article',)
-
-
 class ArticleListModelSerializer(TaggitSerializer, BaseArticleModelSerializer):
     cover = VersatileImageFieldSerializer(
         source='get_cover',
         read_only=True,
-        sizes=[
-            ('medium_square_crop', 'crop__800x800'),
-        ]
+        sizes='article_cover'
+    )
+    article_url = serializers.HyperlinkedIdentityField(
+        view_name='article-detail',
+        read_only=True
     )
     lifetime_str = serializers.CharField(source='lifetime', read_only=True)
     tags = TagListSerializerField(read_only=True)
@@ -136,32 +120,26 @@ class ArticleListModelSerializer(TaggitSerializer, BaseArticleModelSerializer):
             'updated_at',
             'short_description',
             'tags',
+            'article_url',
         )
 
 
 class ArticleDetailModelSerializer(ArticleListModelSerializer):
-    tags = TagListSerializerField(read_only=True)
+    tags = TagListSerializerField()
     comments = ArticleCommentModelSerializer(read_only=True, many=True)
-    images = ArticleImageSerializer(read_only=True, many=True)
 
     class Meta(ArticleListModelSerializer.Meta):
         fields = ArticleListModelSerializer.Meta.fields + (
             'description',
             'comments',
-            'images',
         )
 
 
-class UploadArticleCoverSerializer(UploadImageSerializer):
-    def get_setattr_obj_name(self) -> str:
-        return 'article'
-
-
-class UploadArticleImageSerializer(UploadRelatedImageSerializer):
-    image = serializers.ImageField(source='image.image')
-
-    def get_setattr_obj_name(self) -> str:
-        return 'image'
+class ArticleCoverModelSerializer(UploadImageModelSerializer):
+    image = VersatileImageFieldSerializer(
+        source='image.image',
+        sizes='article_cover'
+    )
 
     def create(self, validated_data):
         get_obj_or_raise_error(
@@ -170,5 +148,5 @@ class UploadArticleImageSerializer(UploadRelatedImageSerializer):
         return super().create(validated_data)
 
     class Meta:
-        model = ArticleImage
+        model = ArticleCover
         exclude = ('article',)

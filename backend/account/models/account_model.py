@@ -5,8 +5,6 @@ from django.utils.translation import gettext_lazy as _
 from phonenumber_field.modelfields import PhoneNumberField
 from colorfield.fields import ColorField
 from enumfields import Enum, EnumIntegerField
-
-from backend.filer.models import Image
 from backend.utils.models import BaseQuerySet
 
 __all__ = (
@@ -24,18 +22,31 @@ class AccountPrivacyStatus(Enum):
         PUBLIC = _('Public')
 
 
-class AccountQuerySet(BaseQuerySet, UserManager):
-    def class_object(self):
-        return Account
+class AccountGender(Enum):
+    NOT_SPECIFIED = 0
+    MALE = 1
+    FEMALE = 2
+
+    class Labels:
+        NOT_SPECIFIED = _('Not specified')
+        MALE = _('Male')
+        FEMALE = _('Female')
+
+
+class AccountManager(UserManager.from_queryset(BaseQuerySet)):
+    pass
 
 
 class Account(AbstractUser):
-    COMMON_SELECT_RELATED = ('avatar',)
+    COMMON_PREFETCH_RELATED = ('images',)
 
     status_type = EnumIntegerField(
         AccountPrivacyStatus, default=AccountPrivacyStatus.PUBLIC, help_text=_(
             'Account publicity status.'
         ), verbose_name=_('Status type')
+    )
+    gender = EnumIntegerField(
+        AccountGender, default=AccountGender.NOT_SPECIFIED, verbose_name=_('Gender')
     )
     background_color = ColorField(
         default='#FFFFFF', format='hexa', help_text=_(
@@ -56,9 +67,6 @@ class Account(AbstractUser):
             'User\'s workplace. Max length is 150.'
         ), verbose_name=_('Workplace')
     )
-    avatar = models.ForeignKey(
-        Image, null=True, on_delete=models.CASCADE, verbose_name=_('User avatar')
-    )
     work_experience = models.TextField(
         max_length=2000, blank=True, default='', help_text=_(
             'User can specify work experience. Max length is 2000.'
@@ -70,18 +78,17 @@ class Account(AbstractUser):
         ), verbose_name=_('About')
     )
 
-    objects = AccountQuerySet.as_manager()
+    objects = AccountManager()
 
-    def get_avatar(self):
-        if avatar := self.avatar:
-            return avatar.image
-        return None
-
-    @property
     def truncate_about(self):
         if len(self.about) > 100:
             return self.about[:100] + '...'
         return self.about
+
+    def last_image(self):
+        if images := self.images:
+            return images.last().get_image()
+        return None
 
     def __str__(self):
         return 'User %i' % self.id

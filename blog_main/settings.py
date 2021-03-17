@@ -47,13 +47,16 @@ INSTALLED_APPS = [
     'drf_yasg',
     'django_elasticsearch_dsl',
     'django_elasticsearch_dsl_drf',
+    'channels',
 
     'backend.account',
     'backend.filer',
     'backend.article',
+    'backend.chat'
 ]
 
 AUTH_USER_MODEL = 'account.Account'
+ASGI_APPLICATION = "blog_main.asgi.application"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -78,19 +81,16 @@ VERSATILEIMAGEFIELD_SETTINGS = {
 }
 
 VERSATILEIMAGEFIELD_RENDITION_KEY_SETS = {
-    'image_gallery': [
-        ('gallery_large', 'crop__800x450'),
-        ('gallery_square_small', 'crop__50x50')
+    'public_account_image': [
+        ('full_size', 'url'),
+        ('medium_square_crop', 'crop__400x400'),
     ],
-    'primary_image_detail': [
-        ('hero', 'crop__600x283'),
-        ('social', 'thumbnail__800x800')
+    'private_account_image': [
+        ('medium_square_crop', 'crop__400x400'),
     ],
-    'primary_image_list': [
-        ('list', 'crop__400x225'),
-    ],
-    'headshot': [
-        ('headshot_small', 'crop__150x175'),
+    'article_cover': [
+        ('full_size', 'url'),
+        ('medium_square_crop', 'crop__400x400'),
     ]
 }
 
@@ -130,7 +130,7 @@ ROOT_URLCONF = 'blog_main.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -164,6 +164,15 @@ REST_FRAMEWORK = {
     'DATE_FORMAT': "%d.%m.%Y",
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 50
+}
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [('127.0.0.1', 6379)]
+        }
+    }
 }
 
 # AUTHENTICATION_BACKENDS = [

@@ -5,7 +5,6 @@ from django.utils import timezone
 
 from taggit.managers import TaggableManager
 
-from backend.filer.models import Image
 from backend.utils.models import BaseQuerySet
 
 User = get_user_model()
@@ -24,17 +23,11 @@ class ArticleQuerySet(BaseQuerySet):
     def with_all_related(self):
         return self._all_related()
 
-    def class_object(self):
-        return Article
-
 
 class Article(models.Model):
-    COMMON_SELECT_RELATED = ('creator', 'cover',)
-    COMMON_PREFETCH_RELATED = ('tags',)
+    COMMON_SELECT_RELATED = ('creator',)
+    COMMON_PREFETCH_RELATED = ('tags', 'covers',)
 
-    cover = models.ForeignKey(
-        Image, on_delete=models.CASCADE, verbose_name=_('Cover'), null=True
-    )
     title = models.CharField(
         max_length=100, default='', blank=True, verbose_name=_('Title')
     )
@@ -61,13 +54,21 @@ class Article(models.Model):
     objects = ArticleQuerySet.as_manager()
 
     def get_cover(self):
-        if cover := self.cover:
-            return cover.image
+        if cover := self.covers.last():
+            return cover.get_image()
         return None
 
     @property
     def lifetime(self):
         return (timezone.now() - self.created_at).days
+
+    @property
+    def tags_indexing(self):
+        """Tags for indexing.
+
+        Used in Elasticsearch indexing.
+        """
+        return [tag.name for tag in self.tags.all()]
 
     def __str__(self):
         return self.title if self.title else str(self.id)
