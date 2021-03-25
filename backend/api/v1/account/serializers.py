@@ -16,12 +16,30 @@ from backend.api.v1.filer.utils.serializers import UploadImageModelSerializer
 from backend.utils.serializers import get_obj_or_raise_error
 
 
+class AccountImageSerializer(UploadImageModelSerializer):
+    image = VersatileImageFieldSerializer(
+        source='image.image',
+        sizes='public_account_image'
+    )
+
+    def create(self, validated_data):
+        get_obj_or_raise_error(
+            model=Account, pk_args='account_pk', context=self.context, validated_data=validated_data
+        )
+        return super().create(validated_data)
+
+    class Meta:
+        model = AccountImage
+        exclude = ('account',)
+
+
 class AccountListModelSerializer(EnumSupportSerializerMixin, serializers.ModelSerializer):
     id_str = serializers.CharField(source='id', read_only=True)
-    status_type_str = serializers.CharField(source='status_type.value', read_only=True)
+    status_type_str = serializers.CharField(source='status_type', read_only=True)
     account_url = serializers.HyperlinkedIdentityField(
         view_name='account-detail',
     )
+    gender_str = serializers.CharField(source='gender', read_only=True)
 
     last_image = VersatileImageFieldSerializer(
         sizes='private_account_image'
@@ -38,6 +56,8 @@ class AccountListModelSerializer(EnumSupportSerializerMixin, serializers.ModelSe
             'last_name',
             'status_type',
             'status_type_str',
+            'gender',
+            'gender_str',
             'truncate_about',
             'account_url',
         )
@@ -59,6 +79,7 @@ class PublicAccountDetailModelSerializer(PrivateAccountDetailModelSerializer):
         sizes='public_account_image',
         read_only=True
     )
+    images = AccountImageSerializer(read_only=True, many=True)
 
     class Meta(PrivateAccountDetailModelSerializer.Meta):
         fields = PrivateAccountDetailModelSerializer.Meta.fields + (
@@ -68,21 +89,5 @@ class PublicAccountDetailModelSerializer(PrivateAccountDetailModelSerializer):
             'workplace',
             'work_experience',
             'about',
+            'images',
         )
-
-
-class AccountImageSerializer(UploadImageModelSerializer):
-    image = VersatileImageFieldSerializer(
-        source='image.image',
-        sizes='public_account_image'
-    )
-
-    def create(self, validated_data):
-        get_obj_or_raise_error(
-            model=Account, pk_args='account_pk', context=self.context, validated_data=validated_data
-        )
-        return super().create(validated_data)
-
-    class Meta:
-        model = AccountImage
-        exclude = ('account',)

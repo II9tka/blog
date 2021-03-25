@@ -3,7 +3,7 @@ from django.db import models
 
 class BaseQuerySet(models.QuerySet):
 
-    def _common_select_related(self):
+    def _common_related(self):
         model = self.model
         qs = self.all()
 
@@ -14,7 +14,7 @@ class BaseQuerySet(models.QuerySet):
         return qs
 
     def with_common_related(self):
-        return self._common_select_related()
+        return self._common_related()
 
 
 class CommonRelatedModel(models.Model):

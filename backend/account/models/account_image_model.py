@@ -13,7 +13,7 @@ class AccountImage(CommonRelatedModel):
         Account, on_delete=models.CASCADE, verbose_name=_('Account'), related_name='images'
     )
     image = models.ForeignKey(
-        Image, on_delete=models.CASCADE, verbose_name=_('avatar')
+        Image, on_delete=models.CASCADE, verbose_name=_('Image')
     )
 
     def get_image(self):

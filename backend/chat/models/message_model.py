@@ -2,13 +2,14 @@ from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from . import Chat
 from backend.utils.models import CommonRelatedModel
 
 User = get_user_model()
 
 
 class Message(CommonRelatedModel):
-    COMMON_SELECT_RELATED = ('sender',)
+    COMMON_SELECT_RELATED = ('sender', 'chat',)
 
     timestamp = models.DateTimeField(
         auto_now_add=True, help_text=_(
@@ -17,6 +18,9 @@ class Message(CommonRelatedModel):
     )
     sender = models.ForeignKey(
         User, on_delete=models.CASCADE, verbose_name=_('Sender')
+    )
+    chat = models.ForeignKey(
+        Chat, on_delete=models.CASCADE, verbose_name=_('Chat room'), related_name='messages', null=True
     )
     text = models.TextField(
         max_length=2000, verbose_name=_('Text')

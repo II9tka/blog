@@ -27,10 +27,15 @@ class AccountViewSet(mixins.ListModelMixin,
             return AccountListModelSerializer
         else:
             account = self.get_object()
-            if account.status_type == STATUS.PUBLIC:
+            if account.status_type == STATUS.PUBLIC or self.request.user == account:
                 return PublicAccountDetailModelSerializer
             elif account.status_type == STATUS.PRIVATE:
                 return PrivateAccountDetailModelSerializer
+
+    def get_object(self):
+        if self.kwargs.get('pk', None) == 'me' and self.request.user.is_authenticated:
+            return self.request.user
+        return super().get_object()
 
 
 class AccountImageViewSet(mixins.DestroyModelMixin,
