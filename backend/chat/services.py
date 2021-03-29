@@ -1,11 +1,15 @@
 import logging
+import json
 
 from django.contrib.auth import get_user_model
+
+from redis import StrictRedis
 
 from channels.db import database_sync_to_async
 from channels.exceptions import StopConsumer
 
 from .models import Chat, Message
+from .utils import get_redis
 from ..account.models import AccountConnectionHistory
 
 logger = logging.getLogger(__name__)
@@ -16,8 +20,13 @@ __all__ = (
     'get_chat_or_raise_error',
     'save_message',
     'update_connection_status',
+    'get_messages',
+    'add_notification',
+    'get_notifications',
 )
 
+
+# Django db
 
 @database_sync_to_async
 def get_chat_or_raise_error(chat_id, user):
@@ -43,12 +52,10 @@ def get_chat_or_raise_error(chat_id, user):
 
 @database_sync_to_async
 def save_message(**kwargs):
-    Message.objects.create(
+    return Message.objects.create(
         **kwargs
     )
 
-
-# TODO: Send device_id in connection method
 
 @database_sync_to_async
 def update_connection_status(user, status, device_id: str = '1'):
@@ -65,7 +72,31 @@ def get_messages(chat):
     return [
         {
             'text': message.text,
-            'timestamp': str(message.timestamp),
+            'timestamp': message.timestamp.strftime("%m.%d.%Y, %H:%M"),
             'sender': message.sender.username
         } for message in chat.messages.with_common_related().order_by('-timestamp')[:20]
     ]
+
+
+# Redis db
+
+def add_notification(message: Message, user_id: int = 1):
+    r_strict = StrictRedis(**get_redis())
+    r_strict.hset('%s_notifications' % user_id, message.id, json.dumps(
+        {
+            'id': message.id,
+            'text': message.text,
+            'timestamp': message.timestamp.strftime("%m.%d.%Y, %H:%M")
+        }
+    ))
+
+
+def get_notifications(user_id):
+    r_strict = StrictRedis(**get_redis())
+    return r_strict.hgetall('%s_notifications' % user_id)
+
+
+def read_notification(user_id, notification_id):
+    r_strict = StrictRedis(**get_redis())
+    data = json.loads(r_strict.hget('%s_notifications' % user_id, notification_id))
+    data['read'] = True

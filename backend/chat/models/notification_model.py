@@ -1,12 +1,12 @@
-from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 
-from enumfields import Enum, EnumIntegerField
+from enumfields import Enum
 
 User = get_user_model()
 
-# TODO: create message notification
+
+# TODO: create message notification (redis)
 
 
 class NotificationStatus(Enum):
@@ -16,12 +16,3 @@ class NotificationStatus(Enum):
     class Labels:
         UNREAD = _('Unread')
         READ = _('Read')
-
-
-class Notification(models.Model):
-    account = models.ForeignKey(
-        User, on_delete=models.CASCADE, verbose_name=_('Account')
-    )
-    notification_status = EnumIntegerField(
-        NotificationStatus, default=NotificationStatus.UNREAD, verbose_name=_('Notification status')
-    )

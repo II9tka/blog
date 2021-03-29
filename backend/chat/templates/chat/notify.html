@@ -14,11 +14,7 @@
     const roomName = JSON.parse(document.getElementById('room-name').textContent);
 
     const chatSocket = new WebSocket(
-        'ws://'
-        + window.location.host
-        + '/ws/chat/'
-        + roomName
-        + '/'
+        'ws://customer-service/notify/'
     );
 
     chatSocket.onmessage = function (e) {
