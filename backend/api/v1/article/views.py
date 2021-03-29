@@ -3,7 +3,7 @@ from typing import Union, Dict
 from django.http import HttpResponse
 from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.utils.serializer_helpers import ReturnDict
 
@@ -22,6 +22,7 @@ from .serializers import (
 class ArticleCommentLikeViewSet(mixins.CreateModelMixin,
                                 viewsets.GenericViewSet):
     serializer_class = ArticleCommentLikeModelSerializer
+    permission_classes = (IsAuthenticatedOrReadOnly,)
 
     @staticmethod
     def get_response(data: ReturnDict, headers: Union[Dict[str, str], dict]) -> HttpResponse:
@@ -42,6 +43,7 @@ class ArticleCommentLikeViewSet(mixins.CreateModelMixin,
 
 class ArticleViewSet(viewsets.ModelViewSet):
     queryset = Article.objects.with_common_related()
+    permission_classes = (IsAuthenticatedOrReadOnly,)
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -63,7 +65,7 @@ class ArticleCommentViewSet(mixins.CreateModelMixin,
                             mixins.UpdateModelMixin,
                             viewsets.GenericViewSet):
     serializer_class = ArticleCommentModelSerializer
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticatedOrReadOnly,)
 
     def get_queryset(self):
         return ArticleComment.objects.with_common_related().filter(
@@ -78,4 +80,4 @@ class ArticleCommentViewSet(mixins.CreateModelMixin,
 class ArticleCoverViewSet(mixins.CreateModelMixin,
                           viewsets.GenericViewSet):
     serializer_class = ArticleCoverModelSerializer
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticatedOrReadOnly,)

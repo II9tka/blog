@@ -1,11 +1,10 @@
 from django.contrib.auth import get_user_model
 from django.db import models
-from django.contrib.auth.models import GroupManager
 from django.utils.translation import gettext_lazy as _
 
 from enumfields import Enum
 
-from backend.utils.models import BaseQuerySet
+from backend.utils.models import CommonRelatedModel
 
 User = get_user_model()
 
@@ -19,15 +18,7 @@ class NotificationStatus(Enum):
         MUTE = _('Mute')
 
 
-class ChatManager(GroupManager.from_queryset(BaseQuerySet)):
-    pass
-
-
-class ChatGroupManager(GroupManager.from_queryset(BaseQuerySet)):
-    pass
-
-
-class Chat(models.Model):
+class Chat(CommonRelatedModel):
     COMMON_SELECT_RELATED = ('creator',)
     COMMON_PREFETCH_RELATED = ('participants',)
 
@@ -40,8 +31,6 @@ class Chat(models.Model):
     participants = models.ManyToManyField(
         User, blank=True, related_name='chat_groups', verbose_name=_('Participants')
     )
-
-    objects = ChatManager()
 
     @property
     def chat_name(self):

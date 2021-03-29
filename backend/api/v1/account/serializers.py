@@ -41,7 +41,7 @@ class AccountListModelSerializer(EnumSupportSerializerMixin, serializers.ModelSe
     )
     gender_str = serializers.CharField(source='gender', read_only=True)
 
-    last_image = VersatileImageFieldSerializer(
+    avatar = VersatileImageFieldSerializer(
         sizes='private_account_image'
     )
 
@@ -50,7 +50,7 @@ class AccountListModelSerializer(EnumSupportSerializerMixin, serializers.ModelSe
         fields = (
             'id',
             'id_str',
-            'last_image',
+            'avatar',
             'username',
             'first_name',
             'last_name',
@@ -75,7 +75,7 @@ class PrivateAccountDetailModelSerializer(AccountListModelSerializer):
 
 
 class PublicAccountDetailModelSerializer(PrivateAccountDetailModelSerializer):
-    last_image = VersatileImageFieldSerializer(
+    avatar = VersatileImageFieldSerializer(
         sizes='public_account_image',
         read_only=True
     )

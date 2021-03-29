@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 
-from backend.utils.models import BaseQuerySet, CommonRelatedModel
+from backend.utils.models import CommonRelatedModel
 from ..validators import validate_comment
 from . import Article
 

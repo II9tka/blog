@@ -49,7 +49,7 @@ class Account(AbstractUser):
         AccountGender, default=AccountGender.NOT_SPECIFIED, verbose_name=_('Gender')
     )
     background_color = ColorField(
-        default='#FFFFFF', format='hexa', help_text=_(
+        default='#FFFFFF', format='hex', help_text=_(
             'User can customize background color of the account. \n'
             'Default color is White (#FFFFFF)'
         ), verbose_name=_('Background color')
@@ -85,8 +85,8 @@ class Account(AbstractUser):
             return self.about[:100] + '...'
         return self.about
 
-    def last_image(self):
-        if images := self.images:
+    def avatar(self):
+        if images := self.images.last():
             return images.last().get_image()
         return None
 

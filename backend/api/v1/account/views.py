@@ -1,7 +1,8 @@
 from rest_framework import viewsets, mixins
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 
 from backend.account.models import Account, AccountPrivacyStatus
+from .permissions import IsAccountOwnerOrReadOnly
 
 from .serializers import (
     AccountListModelSerializer,
@@ -21,6 +22,7 @@ class AccountViewSet(mixins.ListModelMixin,
                      mixins.UpdateModelMixin,
                      viewsets.GenericViewSet):
     queryset = Account.objects.all()
+    permission_classes = (IsAccountOwnerOrReadOnly,)
 
     def get_serializer_class(self):
         if self.action == 'list':
