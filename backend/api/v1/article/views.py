@@ -1,16 +1,20 @@
 from typing import Union, Dict
 
+from django.db.models import Prefetch
 from django.http import HttpResponse
+from django_auto_prefetching import AutoPrefetchViewSetMixin
 from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.utils.serializer_helpers import ReturnDict
 
+from backend.account.models import Account
 from backend.article.models import (
     Article,
     ArticleComment,
 )
+from backend.article.models.article_cover_model import ArticleCover
 
 from .serializers import (
     ArticleListModelSerializer, ArticleDetailModelSerializer,
@@ -41,9 +45,9 @@ class ArticleCommentLikeViewSet(mixins.CreateModelMixin,
         serializer.save(creator=self.request.user)
 
 
-class ArticleViewSet(viewsets.ModelViewSet):
-    queryset = Article.objects.with_common_related()
+class ArticleViewSet(AutoPrefetchViewSetMixin, viewsets.ModelViewSet):
     permission_classes = (IsAuthenticatedOrReadOnly,)
+    queryset = Article.objects.all()
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -68,7 +72,7 @@ class ArticleCommentViewSet(mixins.CreateModelMixin,
     permission_classes = (IsAuthenticatedOrReadOnly,)
 
     def get_queryset(self):
-        return ArticleComment.objects.with_common_related().filter(
+        return ArticleComment.objects.filter(
             article=self.kwargs['article_pk'],
             article__creator=self.request.user
         )

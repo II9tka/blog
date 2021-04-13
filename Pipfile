@@ -38,6 +38,8 @@ asyncio = "*"
 django = "==3.1.7"
 asgiref = "*"
 twisted = "*"
+django-auto-prefetching = "*"
+django-debug-toolbar = "*"
 
 [requires]
 python_version = "3.8"

@@ -5,29 +5,12 @@ from django.utils import timezone
 
 from taggit.managers import TaggableManager
 
-from backend.utils.models import BaseQuerySet
-
 User = get_user_model()
 
 __all__ = ('Article',)
 
 
-class ArticleQuerySet(BaseQuerySet):
-    def _all_related(self):
-        return self.select_related(
-            'creator', 'cover'
-        ).prefetch_related(
-            'tags', 'comments'
-        )
-
-    def with_all_related(self):
-        return self._all_related()
-
-
 class Article(models.Model):
-    COMMON_SELECT_RELATED = ('creator',)
-    COMMON_PREFETCH_RELATED = ('tags', 'covers',)
-
     title = models.CharField(
         max_length=100, default='', blank=True, verbose_name=_('Title')
     )
@@ -51,7 +34,6 @@ class Article(models.Model):
     )
 
     tags = TaggableManager()
-    objects = ArticleQuerySet.as_manager()
 
     def get_cover(self):
         if cover := self.covers.last():

@@ -9,6 +9,9 @@ websocket_urlpatterns = [
 
 http_urlpatterns = [
     path(
-        "customer-service/notify/", AuthMiddlewareStack(ChatNotifyConsumer.as_asgi()),
+        'notifications/', AuthMiddlewareStack(ChatNotifyConsumer.as_asgi()),
     ),
+    # path(
+    #     'notifications/<int:chat_id>/'
+    # )
 ]

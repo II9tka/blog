@@ -2,9 +2,13 @@ import os
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-SECRET_KEY = 'l4#264s9wff-8lxbq&7p*#-sqrnbw-vj8*a@t^x+*)qe26f8_3'
-DEBUG = True
-ALLOWED_HOSTS = []
+SECRET_KEY = os.environ.get('SECRET_KEY', 'l4#264s9wff-8lxbq&7p*#-sqrnbw-vj8*a@t^x+*)qe26f8_3')
+DEBUG = os.environ.get('DEBUG', True)
+INTERNAL_IPS = [
+    '127.0.0.1',
+]
+
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', ['*'])
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -26,6 +30,7 @@ INSTALLED_APPS = [
     'taggit_serializer',
     'phonenumber_field',
     'phone_login',
+    'debug_toolbar',
 
     'backend.account',
     'backend.filer',
@@ -43,6 +48,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
 ROOT_URLCONF = 'blog_main.urls'
@@ -95,6 +101,10 @@ AUTH_USER_MODEL = 'account.Account'
 #     'django.contrib.auth.backends.ModelBackend',
 #     'phone_login.backends.phone_backend.PhoneBackend',
 # ]
+
+PHONE_LOGIN_ATTEMPTS = 10
+PHONE_LOGIN_OTP_LENGTH = 6
+PHONE_LOGIN_OTP_HASH_ALGORITHM = 'sha256'
 
 AUTH_PASSWORD_VALIDATORS = [
     {

@@ -3,14 +3,11 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from . import Chat
-from backend.utils.models import CommonRelatedModel
 
 User = get_user_model()
 
 
-class Message(CommonRelatedModel):
-    COMMON_SELECT_RELATED = ('sender', 'chat',)
-
+class Message(models.Model):
     timestamp = models.DateTimeField(
         auto_now_add=True, help_text=_(
             'Message creation time.'

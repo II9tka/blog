@@ -13,6 +13,7 @@ __all__ = (
 )
 
 from backend.api.v1.filer.utils.serializers import UploadImageModelSerializer
+from backend.utils.mixins import PrefetchedFieldsSerializerMixin
 from backend.utils.serializers import get_obj_or_raise_error
 
 
@@ -33,7 +34,9 @@ class AccountImageSerializer(UploadImageModelSerializer):
         exclude = ('account',)
 
 
-class AccountListModelSerializer(EnumSupportSerializerMixin, serializers.ModelSerializer):
+class AccountListModelSerializer(PrefetchedFieldsSerializerMixin,
+                                 EnumSupportSerializerMixin,
+                                 serializers.ModelSerializer):
     id_str = serializers.CharField(source='id', read_only=True)
     status_type_str = serializers.CharField(source='status_type', read_only=True)
     account_url = serializers.HyperlinkedIdentityField(

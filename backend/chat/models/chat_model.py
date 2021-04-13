@@ -4,8 +4,6 @@ from django.utils.translation import gettext_lazy as _
 
 from enumfields import Enum
 
-from backend.utils.models import CommonRelatedModel
-
 User = get_user_model()
 
 
@@ -18,10 +16,7 @@ class NotificationStatus(Enum):
         MUTE = _('Mute')
 
 
-class Chat(CommonRelatedModel):
-    COMMON_SELECT_RELATED = ('creator',)
-    COMMON_PREFETCH_RELATED = ('participants',)
-
+class Chat(models.Model):
     creator = models.ForeignKey(
         User, on_delete=models.DO_NOTHING, null=True, related_name='chats', verbose_name=_('Creator')
     )

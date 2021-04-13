@@ -1,5 +1,5 @@
 from rest_framework import viewsets, mixins
-from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticated
 
 from backend.account.models import Account, AccountPrivacyStatus
 from .permissions import IsAccountOwnerOrReadOnly
@@ -29,7 +29,9 @@ class AccountViewSet(mixins.ListModelMixin,
             return AccountListModelSerializer
         else:
             account = self.get_object()
-            if account.status_type == STATUS.PUBLIC or self.request.user == account:
+            user = self.request.user
+
+            if account.status_type == STATUS.PUBLIC or account == user:
                 return PublicAccountDetailModelSerializer
             elif account.status_type == STATUS.PRIVATE:
                 return PrivateAccountDetailModelSerializer

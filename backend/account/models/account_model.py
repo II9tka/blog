@@ -1,11 +1,10 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser, UserManager
+from django.contrib.auth.models import AbstractUser
 from django.utils.translation import gettext_lazy as _
 
 from phonenumber_field.modelfields import PhoneNumberField
 from colorfield.fields import ColorField
 from enumfields import Enum, EnumIntegerField
-from backend.utils.models import BaseQuerySet
 
 __all__ = (
     'Account',
@@ -33,13 +32,7 @@ class AccountGender(Enum):
         FEMALE = _('Female')
 
 
-class AccountManager(UserManager.from_queryset(BaseQuerySet)):
-    pass
-
-
 class Account(AbstractUser):
-    COMMON_PREFETCH_RELATED = ('images',)
-
     status_type = EnumIntegerField(
         AccountPrivacyStatus, default=AccountPrivacyStatus.PUBLIC, help_text=_(
             'Account publicity status.'
@@ -78,8 +71,6 @@ class Account(AbstractUser):
         ), verbose_name=_('About')
     )
 
-    objects = AccountManager()
-
     def truncate_about(self):
         if len(self.about) > 100:
             return self.about[:100] + '...'
@@ -87,7 +78,7 @@ class Account(AbstractUser):
 
     def avatar(self):
         if images := self.images.last():
-            return images.last().get_image()
+            return images.get_image()
         return None
 
     def __str__(self):

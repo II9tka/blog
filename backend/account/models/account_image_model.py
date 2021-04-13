@@ -3,12 +3,9 @@ from django.utils.translation import gettext_lazy as _
 
 from . import Account
 from backend.filer.models import Image
-from backend.utils.models import CommonRelatedModel
 
 
-class AccountImage(CommonRelatedModel):
-    COMMON_SELECT_RELATED = ('image',)
-
+class AccountImage(models.Model):
     account = models.ForeignKey(
         Account, on_delete=models.CASCADE, verbose_name=_('Account'), related_name='images'
     )

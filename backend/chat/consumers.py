@@ -1,15 +1,14 @@
+import json
 import logging
 import aioredis
 import asyncio
-
-from django.conf import settings
 
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from channels.generic.http import AsyncHttpConsumer
 from channels.exceptions import StopConsumer
 
 from .services import (
-    save_message, get_chat_or_raise_error, update_connection_status, get_messages, add_notification, get_notifications
+    save_message, get_chat_or_raise_error, update_connection_status, get_last_messages, add_notification,
 )
 
 logger = logging.getLogger(__name__)
@@ -38,14 +37,10 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             'offline': 0,
             'online': 1
         }
-        assert status_types.get(status, None), (
-            'status "{status}" does not exist in status types.'.format(
-                status=status
-            )
-        )
         await update_connection_status(
             user=self.user,
-            status=status_types[status]
+            status=status_types[status],
+            session_id=self.scope['cookies']['sessionid']
         )
         return status
 
@@ -68,17 +63,17 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                     username=self.user.username.title()
                 )
             )
-            await self.accept()
+            await self.accept('Token')
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
                     "type": "chat_join",
-                    'action': 'connect',
                     "username": self.user.username,
                     'connection_status': connection_status
                 },
             )
-            await self.get_last_messages()
+            await self._get_last_messages()
+
         else:
             logger.info(
                 'Trying to connect an unauthorized user'
@@ -133,25 +128,20 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 "type": "chat_message",
                 'timestamp': message.timestamp.strftime("%m.%d.%Y, %H:%M"),
                 "username": self.user.username,
+                'message_id': message.id,
                 "message": content["message"],
             },
         )
         add_notification(
-            message, user_id=self.user.id
-        )
-        logger.debug(
-            'Notification successfully create in Redis. '
-            'User notifications: {notifications}'.format(
-                notifications=get_notifications(user_id=self.user.id)
-            )
+            message, self.user
         )
 
     async def mark_message_as_read(self, content):
         pass
 
-    async def get_last_messages(self):
+    async def _get_last_messages(self):
         chat = await self._get_chat_or_raise_error()
-        messages = await get_messages(chat)
+        messages = await get_last_messages(chat)
 
         await self.channel_layer.group_send(
             self.room_group_name,
@@ -175,12 +165,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         await self.send_json(event)
 
 
-# TODO: ChatNotifyConsumer Doesn't work. May be AsyncJsonWebsocketConsumer will help.
-
 class ChatNotifyConsumer(AsyncHttpConsumer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.is_streaming = False
         self.user = None
 
     async def handle(self, body):
@@ -188,7 +175,7 @@ class ChatNotifyConsumer(AsyncHttpConsumer):
 
         if self.user.is_authenticated:
             logger.info(
-                'User "{username}" waiting for notifications.'.format(
+                'User "{username}" connected to notifications'.format(
                     username=self.user.username.title()
                 )
             )
@@ -197,13 +184,39 @@ class ChatNotifyConsumer(AsyncHttpConsumer):
                 (b"Content-Type", b"text/event-stream"),
                 (b"Transfer-Encoding", b"chunked"),
             ])
-            self.is_streaming = True
-            asyncio.get_event_loop().create_task(self.stream())
+
+            event_loop = asyncio.get_event_loop()
+            task = event_loop.create_task(self.stream())
+            await task
         else:
             logger.info(
                 'Trying to connect an unauthorized user'
             )
             raise StopConsumer('UNAUTHORIZED')
+
+    async def stream(self):
+        r_conn = await aioredis.create_redis(('localhost', 6379))
+        notifications = await r_conn.keys(
+            'notifications_%s:chat_*' % self.user.id
+        )
+
+        while True:
+            result = {}
+
+            for notification in notifications:
+                decoded_notification_key = notification.decode()
+
+                chat_id = decoded_notification_key.split('_')[-1]
+                notification_detail = await r_conn.hgetall(decoded_notification_key, encoding='utf-8')
+                last_notifications = list(notification_detail.values())[-1]
+                notifications_count = await r_conn.hlen(decoded_notification_key)
+
+                result[chat_id] = {'last_message': last_notifications}
+                result[chat_id]['count'] = notifications_count
+
+            payload = "data: %s\n\n" % json.dumps(result)
+            await self.send_body(payload.encode("utf-8"), more_body=True)
+            await asyncio.sleep(2)
 
     async def disconnect(self):
         logger.info(
@@ -211,8 +224,3 @@ class ChatNotifyConsumer(AsyncHttpConsumer):
                 username=self.user.username.title(),
             ),
         )
-        self.is_streaming = False
-
-    async def stream(self):
-        redis_connection = await aioredis.create_redis(settings.REDIS_URL)
-        # ...

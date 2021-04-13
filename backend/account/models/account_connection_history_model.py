@@ -20,9 +20,7 @@ class AccountConnectionHistory(models.Model):
     account = models.ForeignKey(
         User, on_delete=models.CASCADE, verbose_name=_('account'), related_name='connections'
     )
-    device_id = models.CharField(max_length=100, help_text=_(
-        'Unique ID of the user\'s device.'
-    ), verbose_name=_('Device ID'))
+    session_id = models.CharField(max_length=100, verbose_name=_('Session ID'))
     connection_status = EnumIntegerField(
         ConnectionStatus, default=ConnectionStatus.OFFLINE, help_text=_(
             'Account connection status.'
@@ -31,4 +29,4 @@ class AccountConnectionHistory(models.Model):
     last_connection = models.DateTimeField(auto_now=True, verbose_name=_('Last connection'))
 
     class Meta:
-        unique_together = (('account', 'device_id'),)
+        unique_together = (('account', 'session_id'),)

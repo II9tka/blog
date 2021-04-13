@@ -1,7 +1,13 @@
 import logging
 import json
+import aioredis
+from django.conf import settings
 
+from rest_framework.authtoken.models import Token
+
+from django import db
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AnonymousUser
 
 from redis import StrictRedis
 
@@ -15,18 +21,36 @@ from ..account.models import AccountConnectionHistory
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
+REDIS_URL = settings.REDIS_URL
 
 __all__ = (
     'get_chat_or_raise_error',
     'save_message',
     'update_connection_status',
-    'get_messages',
+    'get_last_messages',
     'add_notification',
     'get_notifications',
+    'get_user_from_token',
 )
 
 
 # Django db
+
+@database_sync_to_async
+def get_user_from_token(auth_header):
+    try:
+        _, token = auth_header.decode().split()
+    except (ValueError, AttributeError):
+        token = ''
+    try:
+        token = Token.objects.select_related('user').get(key=token)
+        user = token.user
+    except Token.DoesNotExist:
+        user = AnonymousUser()
+
+    db.close_old_connections()
+    return user
+
 
 @database_sync_to_async
 def get_chat_or_raise_error(chat_id, user):
@@ -58,9 +82,9 @@ def save_message(**kwargs):
 
 
 @database_sync_to_async
-def update_connection_status(user, status, device_id: str = '1'):
+def update_connection_status(user: User, status: int, session_id: str):
     connection_history, _ = AccountConnectionHistory.objects.get_or_create(
-        account=user, device_id=device_id
+        account=user, session_id=session_id
     )
     connection_history.connection_status = status
     connection_history.save(update_fields=['connection_status'])
@@ -68,35 +92,38 @@ def update_connection_status(user, status, device_id: str = '1'):
 
 
 @database_sync_to_async
-def get_messages(chat):
+def get_last_messages(chat):
     return [
         {
+            'id': message.id,
             'text': message.text,
             'timestamp': message.timestamp.strftime("%m.%d.%Y, %H:%M"),
             'sender': message.sender.username
-        } for message in chat.messages.with_common_related().order_by('-timestamp')[:20]
+        } for message in chat.messages.all().order_by('-timestamp')[:20]
     ]
 
 
 # Redis db
 
+
 def add_notification(message: Message, user_id: int = 1):
     r_strict = StrictRedis(**get_redis())
-    r_strict.hset('%s_notifications' % user_id, message.id, json.dumps(
+    r_strict.hset('notifications_%s:chat_%s' % (user_id, message.chat.id), message.id, json.dumps(
         {
             'id': message.id,
             'text': message.text,
             'timestamp': message.timestamp.strftime("%m.%d.%Y, %H:%M")
         }
     ))
+    # r_strict.publish('%s_notifications_%s_chat' % (user_id, message.chat.id), json.dumps(
+    #     {
+    #         'id': message.id,
+    #         'text': message.text,
+    #         'timestamp': message.timestamp.strftime("%m.%d.%Y, %H:%M")
+    #     }
+    # ))
 
 
 def get_notifications(user_id):
     r_strict = StrictRedis(**get_redis())
     return r_strict.hgetall('%s_notifications' % user_id)
-
-
-def read_notification(user_id, notification_id):
-    r_strict = StrictRedis(**get_redis())
-    data = json.loads(r_strict.hget('%s_notifications' % user_id, notification_id))
-    data['read'] = True
